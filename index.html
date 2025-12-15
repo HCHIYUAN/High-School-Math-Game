@@ -1,629 +1,553 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, Sword, RefreshCw, Trophy, Heart, Zap, Target, Divide, Activity, ArrowUpRight, Circle, ChevronRight, User, Users, Sparkles, Play } from 'lucide-react';
-
-// --- 遊戲資料 ---
-
-const CHARACTERS = [
-  { 
-    id: 'hero_boy', 
-    name: '熱血幾何勇者', 
-    avatar: '🦸‍♂️', 
-    color: 'bg-blue-600', 
-    borderColor: 'border-blue-400', 
-    shadow: 'shadow-blue-500/50',
-    desc: '充滿活力的男高中生，擅長直覺解題。' 
-  },
-  { 
-    id: 'hero_girl', 
-    name: '智慧代數女傑', 
-    avatar: '🦸‍♀️', 
-    color: 'bg-rose-500', 
-    borderColor: 'border-rose-400', 
-    shadow: 'shadow-rose-500/50',
-    desc: '冷靜沈著的女高中生，計算精確無誤。' 
-  },
-  { 
-    id: 'wizard_boy', 
-    name: '邏輯推理法師', 
-    avatar: '🧙‍♂️', 
-    color: 'bg-purple-600', 
-    borderColor: 'border-purple-400', 
-    shadow: 'shadow-purple-500/50',
-    desc: '掌握數學奧義，用魔法般的公式解題。' 
-  },
-  { 
-    id: 'warrior_girl', 
-    name: '光速計算劍士', 
-    avatar: '👩‍🚀', 
-    color: 'bg-amber-600', 
-    borderColor: 'border-amber-400', 
-    shadow: 'shadow-amber-500/50',
-    desc: '反應速度極快，能在瞬間看穿題目弱點。' 
-  }
-];
-
-const TOPICS = [
-  {
-    id: 'seq',
-    name: '數列與級數',
-    bossName: '無盡序列巨魔',
-    bossAvatar: '🔢',
-    color: 'from-blue-500 to-cyan-400',
-    icon: <Divide className="w-6 h-6" />,
-    description: '掌握規律，計算總和，破解無窮的謎題。',
-  },
-  {
-    id: 'log',
-    name: '指數與對數',
-    bossName: '指數爆炸龍',
-    bossAvatar: '📈',
-    color: 'from-purple-500 to-pink-400',
-    icon: <Activity className="w-6 h-6" />,
-    description: '在極大與極小之間，找到平衡的指數。',
-  },
-  {
-    id: 'vec',
-    name: '平面向量',
-    bossName: '方向向量騎士',
-    bossAvatar: '↗️',
-    color: 'from-green-500 to-emerald-400',
-    icon: <ArrowUpRight className="w-6 h-6" />,
-    description: '掌握方向與長度，利用內積決勝負。',
-  },
-  {
-    id: 'geo',
-    name: '直線與圓',
-    bossName: '幾何圓舞曲女皇',
-    bossAvatar: '🎯',
-    color: 'from-orange-500 to-red-400',
-    icon: <Circle className="w-6 h-6" />,
-    description: '解析幾何的奧秘，切線與距離是關鍵。',
-  },
-];
-
-const QUESTION_BANK = {
-  seq: [
-    { q: '已知等差數列首項為 2，公差為 3，求第 10 項為何？', options: ['27', '29', '32', '35'], correct: 1, explanation: 'an = a1 + (n-1)d → a10 = 2 + 9×3 = 29' },
-    { q: '求 1 + 2 + 3 + ... + 100 之和？', options: ['5000', '5050', '5100', '4950'], correct: 1, explanation: '梯形公式：(1+100)×100 / 2 = 5050' },
-    { q: '若一等比數列首項為 3，公比為 2，則第 5 項為？', options: ['24', '48', '96', '12'], correct: 1, explanation: 'an = a1 × r^(n-1) → a5 = 3 × 2^4 = 3 × 16 = 48' },
-    { q: '求 Σ(k=1 to 10) 5 的值？', options: ['5', '10', '50', '55'], correct: 2, explanation: '常數項加總：5 × 10 = 50' },
-    { q: '無窮等比級數 1 + 1/2 + 1/4 + 1/8 + ... 的和為？', options: ['1.5', '2', '2.5', '無限大'], correct: 1, explanation: '公式 a1 / (1-r) → 1 / (1-0.5) = 2' },
-  ],
-  log: [
-    { q: '計算 log₂8 的值？', options: ['2', '3', '4', '8'], correct: 1, explanation: '2的三次方等於8，故值為3' },
-    { q: '若 10ˣ = 1000，則 x 為？', options: ['2', '3', '10', '100'], correct: 1, explanation: '1000 是 10 的三次方' },
-    { q: 'log 100 + log 10 = ?', options: ['20', '30', '3', '1000'], correct: 2, explanation: 'log 100 = 2, log 10 = 1, 相加為 3' },
-    { q: '下列何者正確？', options: ['log(a+b) = log a + log b', 'log(ab) = log a + log b', 'log(ab) = log a × log b', 'log a / log b = log(a-b)'], correct: 1, explanation: '對數性質：真數相乘等於對數相加' },
-    { q: '3⁰ 的值為？', options: ['0', '1', '3', 'undefined'], correct: 1, explanation: '任何非零數的 0 次方皆為 1' },
-  ],
-  vec: [
-    { q: '若向量 a = (3, 4)，則 |a| (長度) 為？', options: ['5', '7', '12', '25'], correct: 0, explanation: '√(3² + 4²) = √25 = 5' },
-    { q: '向量 a=(1,2) 與 b=(3,4)，求 a + b？', options: ['(4,6)', '(2,2)', '(3,8)', '(4,8)'], correct: 0, explanation: 'x分量相加，y分量相加 → (1+3, 2+4) = (4,6)' },
-    { q: '若兩非零向量內積為 0，則兩向量的關係為？', options: ['平行', '垂直', '重合', '相反'], correct: 1, explanation: '內積為 0 代表夾角 90 度，即垂直' },
-    { q: '向量 a=(2,1), b=(-1,3)，求內積 a·b？', options: ['1', '5', '-5', '-1'], correct: 0, explanation: 'x1x2 + y1y2 = 2×(-1) + 1×3 = -2 + 3 = 1' },
-    { q: '柯西不等式 |a||b| ___ |a·b| ？', options: ['≥', '≤', '=', '<'], correct: 0, explanation: '柯西不等式：長度積大於等於內積的絕對值' },
-  ],
-  geo: [
-    { q: '點 (3, 4) 到原點的距離為？', options: ['3', '4', '5', '7'], correct: 2, explanation: '距離公式：√(3² + 4²) = 5' },
-    { q: '圓方程式 (x-1)² + (y+2)² = 9 的圓心座標為？', options: ['(1, 2)', '(-1, 2)', '(1, -2)', '(-1, -2)'], correct: 2, explanation: '標準式 (x-h)² + (y-k)² = r²，圓心為 (h,k)' },
-    { q: '承上題，該圓的半徑為？', options: ['3', '9', '81', '1'], correct: 0, explanation: 'r² = 9，故 r = 3' },
-    { q: '直線 3x + 4y - 10 = 0 的斜率為？', options: ['3/4', '-3/4', '4/3', '-4/3'], correct: 1, explanation: 'm = -a/b = -3/4' },
-    { q: '兩平行線 3x+4y=10 與 3x+4y=20 之間的距離？', options: ['2', '10', '5', '1'], correct: 0, explanation: '公式 |c1-c2| / √(a²+b²) → |10-20| / 5 = 2' },
-  ],
-};
-
-// --- 主要元件 ---
-
-export default function MathHeroApp() {
-  const [gameState, setGameState] = useState('intro'); // 初始狀態改為 intro
-  const [selectedCharacter, setSelectedCharacter] = useState(CHARACTERS[0]);
-  const [selectedTopicId, setSelectedTopicId] = useState(null);
-  const [currentQuestion, setCurrentQuestion] = useState(null);
-  const [playerHp, setPlayerHp] = useState(100);
-  const [bossHp, setBossHp] = useState(100);
-  const [feedback, setFeedback] = useState(null); 
-  const [shake, setShake] = useState(false);
-  const [combo, setCombo] = useState(0);
-
-  // 初始化關卡
-  const startLevel = (topicId) => {
-    setSelectedTopicId(topicId);
-    setPlayerHp(100);
-    setBossHp(100);
-    setCombo(0);
-    setFeedback(null);
-    setGameState('playing');
-    loadNewQuestion(topicId);
-  };
-
-  const loadNewQuestion = (topicId) => {
-    const questions = QUESTION_BANK[topicId];
-    const randomIndex = Math.floor(Math.random() * questions.length);
-    setCurrentQuestion(questions[randomIndex]);
-  };
-
-  const handleAnswer = (optionIndex) => {
-    if (feedback) return;
-
-    const isCorrect = optionIndex === currentQuestion.correct;
-    
-    if (isCorrect) {
-      const damage = 20 + (combo * 5); 
-      const newBossHp = Math.max(0, bossHp - damage);
-      setBossHp(newBossHp);
-      setCombo(combo + 1);
-      setFeedback({ type: 'correct', selected: optionIndex, msg: `正解！造成 ${damage} 點傷害！` });
-
-      if (newBossHp === 0) {
-        setTimeout(() => setGameState('won'), 1500);
-      }
-    } else {
-      const damage = 25;
-      const newPlayerHp = Math.max(0, playerHp - damage);
-      setPlayerHp(newPlayerHp);
-      setCombo(0);
-      setShake(true);
-      setFeedback({ type: 'wrong', selected: optionIndex, msg: `錯誤！${currentQuestion.explanation}` });
-
-      if (newPlayerHp === 0) {
-        setTimeout(() => setGameState('lost'), 2000);
-      } else {
-        setTimeout(() => setShake(false), 500);
-      }
-    }
-  };
-
-  const handleNextQuestion = () => {
-    setFeedback(null);
-    loadNewQuestion(selectedTopicId);
-  };
-
-  // --- 畫面渲染函數 ---
-
-  // 新增：史詩級開場動畫
-  const renderIntro = () => {
-    const mathSymbols = ['∑', '∫', 'π', '√', '∞', 'sin', 'log', 'f(x)', 'dx', 'θ', 'λ', 'Δ'];
-    
-    // 產生隨機符號的樣式
-    const particles = Array.from({ length: 25 }).map((_, i) => ({
-      symbol: mathSymbols[Math.floor(Math.random() * mathSymbols.length)],
-      left: `${Math.random() * 100}%`,
-      delay: `${Math.random() * 5}s`,
-      duration: `${5 + Math.random() * 10}s`,
-      size: `${1 + Math.random() * 2}rem`,
-      opacity: 0.1 + Math.random() * 0.3
-    }));
-
-    return (
-      <div 
-        onClick={() => setGameState('menu')}
-        className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center overflow-hidden cursor-pointer"
-      >
-        {/* 背景：星空與數學符號雨 */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-black to-black"></div>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高中數學英雄傳：四大試煉</title>
+    <!-- 載入 React 與 Tailwind CSS -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 自定義動畫 */
+        @keyframes float-up {
+            0% { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+            20% { opacity: 0.8; }
+            80% { opacity: 0.8; }
+            100% { transform: translateY(-20vh) rotate(360deg); opacity: 0; }
+        }
+        .animate-float-up {
+            animation-name: float-up;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+        }
+        @keyframes slam-in {
+            0% { transform: scale(10); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-slam-in {
+            animation: slam-in 0.8s cubic-bezier(0.17, 0.89, 0.32, 1.25) forwards;
+            animation-delay: 1s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        .animate-fade-in-delayed-1 { animation: fadeIn 1s ease-out forwards 0.5s; }
+        .animate-fade-in-delayed-2 { animation: fadeIn 1s ease-out forwards 1.8s; }
+        .animate-fade-in-delayed-3 { animation: fadeIn 1s ease-out forwards 2.5s; }
         
-        {particles.map((p, i) => (
-          <div
-            key={i}
-            className="absolute text-cyan-500 font-mono select-none animate-float-up"
-            style={{
-              left: p.left,
-              bottom: '-10%',
-              animationDelay: p.delay,
-              animationDuration: p.duration,
-              fontSize: p.size,
-              opacity: p.opacity
-            }}
-          >
-            {p.symbol}
-          </div>
-        ))}
-
-        {/* 主要內容容器 */}
-        <div className="relative z-10 text-center px-4 animate-intro-sequence">
-          
-          <div className="mb-4 text-cyan-400 font-mono tracking-[0.5em] text-sm md:text-xl opacity-0 animate-fade-in-delayed-1">
-            高一下學期
-          </div>
-
-          <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-orange-400 to-red-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)] mb-2 scale-50 opacity-0 animate-slam-in">
-            高中數學
-            <br className="md:hidden" />
-            英雄傳
-          </h1>
-
-          <div className="text-xl md:text-3xl text-white/80 font-bold mb-12 tracking-widest opacity-0 animate-fade-in-delayed-2 flex items-center justify-center gap-3">
-            <span className="w-8 h-[1px] bg-white/50"></span>
-            四大試煉
-            <span className="w-8 h-[1px] bg-white/50"></span>
-          </div>
-
-          <div className="opacity-0 animate-fade-in-delayed-3">
-             <button className="group relative px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/30 rounded-full text-white transition-all hover:scale-105 backdrop-blur-sm flex items-center gap-3 mx-auto animate-pulse">
-                <Play className="fill-white" size={20} />
-                <span className="tracking-widest font-bold">點擊螢幕開始</span>
-                <span className="absolute -inset-1 rounded-full border border-white/20 animate-ping opacity-50"></span>
-             </button>
-          </div>
-        </div>
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .animate-shake { animation: shake 0.4s ease-in-out; }
         
-        <div className="absolute bottom-8 text-white/30 text-xs animate-pulse">
-          Math Hero Saga: The Four Trials
-        </div>
-      </div>
-    );
-  };
+        @keyframes pulse-slow {
+             0%, 100% { opacity: 1; }
+             50% { opacity: .8; }
+        }
+        .animate-pulse-slow { animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white font-sans select-none">
+    <div id="root"></div>
 
-  const renderMenu = () => (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 text-white p-4 animate-fade-in">
-      <div className="text-center mb-12">
-        <h1 className="text-5xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 drop-shadow-lg">
-          高中數學英雄傳
-        </h1>
-        <p className="text-xl text-gray-300">高一下學期：四大試煉</p>
-      </div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-      <button 
-        onClick={() => setGameState('charSelect')}
-        className="group relative px-8 py-4 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold text-xl rounded-full transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(234,179,8,0.5)] flex items-center gap-2"
-      >
-        <Sword className="w-6 h-6" />
-        開始冒險
-      </button>
+        // --- 簡易圖示元件 (使用 SVG Path) ---
+        const Icons = {
+            Sword: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/></svg>,
+            Shield: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+            RefreshCw: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>,
+            Trophy: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10"/><path d="M17 4v3a5 5 0 0 1-5 5h0a5 5 0 0 1-5-5V4"/><path d="M21 4H23a2 2 0 0 1 2 2v1a4 4 0 0 1-4 4h-2"/><path d="M3 4H5a2 2 0 0 1 2 2v1a4 4 0 0 0 4-4H3"/></svg>,
+            Heart: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
+            Zap: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+            Target: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+            Divide: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="1"/><line x1="5" y1="12" x2="19" y2="12"/><circle cx="12" cy="18" r="1"/></svg>,
+            Activity: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+            ArrowUpRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>,
+            Circle: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/></svg>,
+            ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
+            Users: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+            Play: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        };
 
-      <div className="mt-12 text-sm text-gray-500 text-center max-w-md">
-        <p>老師寄語：這不只是遊戲，是檢驗你數列、指數、向量與幾何能力的戰場！加油！</p>
-      </div>
-    </div>
-  );
+        // --- 遊戲資料 ---
 
-  // 新增：角色選擇畫面
-  const renderCharSelect = () => (
-    <div className="min-h-screen bg-slate-900 text-white p-6 flex flex-col items-center justify-center animate-fade-in">
-      <h2 className="text-3xl font-bold mb-2 flex items-center gap-2">
-        <Users className="w-8 h-8 text-yellow-400" />
-        選擇你的英雄
-      </h2>
-      <p className="text-gray-400 mb-8">選擇一位代表你的勇者進入數學戰場</p>
+        const CHARACTERS = [
+          { 
+            id: 'hero_boy', 
+            name: '熱血幾何勇者', 
+            avatar: '🦸‍♂️', 
+            color: 'bg-blue-600', 
+            borderColor: 'border-blue-400', 
+            shadow: 'shadow-blue-500/50',
+            desc: '充滿活力的男高中生，擅長直覺解題。' 
+          },
+          { 
+            id: 'hero_girl', 
+            name: '智慧代數女傑', 
+            avatar: '🦸‍♀️', 
+            color: 'bg-rose-500', 
+            borderColor: 'border-rose-400', 
+            shadow: 'shadow-rose-500/50',
+            desc: '冷靜沈著的女高中生，計算精確無誤。' 
+          },
+          { 
+            id: 'wizard_boy', 
+            name: '邏輯推理法師', 
+            avatar: '🧙‍♂️', 
+            color: 'bg-purple-600', 
+            borderColor: 'border-purple-400', 
+            shadow: 'shadow-purple-500/50',
+            desc: '掌握數學奧義，用魔法般的公式解題。' 
+          },
+          { 
+            id: 'warrior_girl', 
+            name: '光速計算劍士', 
+            avatar: '👩‍🚀', 
+            color: 'bg-amber-600', 
+            borderColor: 'border-amber-400', 
+            shadow: 'shadow-amber-500/50',
+            desc: '反應速度極快，能在瞬間看穿題目弱點。' 
+          }
+        ];
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-5xl">
-        {CHARACTERS.map((char) => (
-          <button
-            key={char.id}
-            onClick={() => {
-              setSelectedCharacter(char);
-              setGameState('levelSelect');
-            }}
-            className="group relative bg-slate-800 rounded-2xl p-6 border-2 border-slate-700 hover:border-yellow-400 transition-all hover:-translate-y-2 hover:shadow-xl flex flex-col items-center text-center"
-          >
-            <div className={`w-24 h-24 rounded-full ${char.color} flex items-center justify-center text-6xl shadow-lg mb-4 ring-4 ring-opacity-30 ring-white group-hover:scale-110 transition-transform`}>
-              {char.avatar}
-            </div>
-            <h3 className="text-xl font-bold mb-2 text-white group-hover:text-yellow-400">{char.name}</h3>
-            <p className="text-sm text-gray-400">{char.desc}</p>
+        const TOPICS = [
+          {
+            id: 'seq',
+            name: '數列與級數',
+            bossName: '無盡序列巨魔',
+            bossAvatar: '🔢',
+            color: 'from-blue-500 to-cyan-400',
+            icon: Icons.Divide,
+            description: '掌握規律，計算總和，破解無窮的謎題。',
+          },
+          {
+            id: 'log',
+            name: '指數與對數',
+            bossName: '指數爆炸龍',
+            bossAvatar: '📈',
+            color: 'from-purple-500 to-pink-400',
+            icon: Icons.Activity,
+            description: '在極大與極小之間，找到平衡的指數。',
+          },
+          {
+            id: 'vec',
+            name: '平面向量',
+            bossName: '方向向量騎士',
+            bossAvatar: '↗️',
+            color: 'from-green-500 to-emerald-400',
+            icon: Icons.ArrowUpRight,
+            description: '掌握方向與長度，利用內積決勝負。',
+          },
+          {
+            id: 'geo',
+            name: '直線與圓',
+            bossName: '幾何圓舞曲女皇',
+            bossAvatar: '🎯',
+            color: 'from-orange-500 to-red-400',
+            icon: Icons.Circle,
+            description: '解析幾何的奧秘，切線與距離是關鍵。',
+          },
+        ];
+
+        const QUESTION_BANK = {
+          seq: [
+            { q: '已知等差數列首項為 2，公差為 3，求第 10 項為何？', options: ['27', '29', '32', '35'], correct: 1, explanation: 'an = a1 + (n-1)d → a10 = 2 + 9×3 = 29' },
+            { q: '求 1 + 2 + 3 + ... + 100 之和？', options: ['5000', '5050', '5100', '4950'], correct: 1, explanation: '梯形公式：(1+100)×100 / 2 = 5050' },
+            { q: '若一等比數列首項為 3，公比為 2，則第 5 項為？', options: ['24', '48', '96', '12'], correct: 1, explanation: 'an = a1 × r^(n-1) → a5 = 3 × 2^4 = 3 × 16 = 48' },
+            { q: '求 Σ(k=1 to 10) 5 的值？', options: ['5', '10', '50', '55'], correct: 2, explanation: '常數項加總：5 × 10 = 50' },
+            { q: '無窮等比級數 1 + 1/2 + 1/4 + 1/8 + ... 的和為？', options: ['1.5', '2', '2.5', '無限大'], correct: 1, explanation: '公式 a1 / (1-r) → 1 / (1-0.5) = 2' },
+          ],
+          log: [
+            { q: '計算 log₂8 的值？', options: ['2', '3', '4', '8'], correct: 1, explanation: '2的三次方等於8，故值為3' },
+            { q: '若 10ˣ = 1000，則 x 為？', options: ['2', '3', '10', '100'], correct: 1, explanation: '1000 是 10 的三次方' },
+            { q: 'log 100 + log 10 = ?', options: ['20', '30', '3', '1000'], correct: 2, explanation: 'log 100 = 2, log 10 = 1, 相加為 3' },
+            { q: '下列何者正確？', options: ['log(a+b) = log a + log b', 'log(ab) = log a + log b', 'log(ab) = log a × log b', 'log a / log b = log(a-b)'], correct: 1, explanation: '對數性質：真數相乘等於對數相加' },
+            { q: '3⁰ 的值為？', options: ['0', '1', '3', 'undefined'], correct: 1, explanation: '任何非零數的 0 次方皆為 1' },
+          ],
+          vec: [
+            { q: '若向量 a = (3, 4)，則 |a| (長度) 為？', options: ['5', '7', '12', '25'], correct: 0, explanation: '√(3² + 4²) = √25 = 5' },
+            { q: '向量 a=(1,2) 與 b=(3,4)，求 a + b？', options: ['(4,6)', '(2,2)', '(3,8)', '(4,8)'], correct: 0, explanation: 'x分量相加，y分量相加 → (1+3, 2+4) = (4,6)' },
+            { q: '若兩非零向量內積為 0，則兩向量的關係為？', options: ['平行', '垂直', '重合', '相反'], correct: 1, explanation: '內積為 0 代表夾角 90 度，即垂直' },
+            { q: '向量 a=(2,1), b=(-1,3)，求內積 a·b？', options: ['1', '5', '-5', '-1'], correct: 0, explanation: 'x1x2 + y1y2 = 2×(-1) + 1×3 = -2 + 3 = 1' },
+            { q: '柯西不等式 |a||b| ___ |a·b| ？', options: ['≥', '≤', '=', '<'], correct: 0, explanation: '柯西不等式：長度積大於等於內積的絕對值' },
+          ],
+          geo: [
+            { q: '點 (3, 4) 到原點的距離為？', options: ['3', '4', '5', '7'], correct: 2, explanation: '距離公式：√(3² + 4²) = 5' },
+            { q: '圓方程式 (x-1)² + (y+2)² = 9 的圓心座標為？', options: ['(1, 2)', '(-1, 2)', '(1, -2)', '(-1, -2)'], correct: 2, explanation: '標準式 (x-h)² + (y-k)² = r²，圓心為 (h,k)' },
+            { q: '承上題，該圓的半徑為？', options: ['3', '9', '81', '1'], correct: 0, explanation: 'r² = 9，故 r = 3' },
+            { q: '直線 3x + 4y - 10 = 0 的斜率為？', options: ['3/4', '-3/4', '4/3', '-4/3'], correct: 1, explanation: 'm = -a/b = -3/4' },
+            { q: '兩平行線 3x+4y=10 與 3x+4y=20 之間的距離？', options: ['2', '10', '5', '1'], correct: 0, explanation: '公式 |c1-c2| / √(a²+b²) → |10-20| / 5 = 2' },
+          ],
+        };
+
+        // --- 主程式元件 ---
+        function MathHeroApp() {
+          const [gameState, setGameState] = useState('intro'); // intro, menu, charSelect, levelSelect, playing, won, lost
+          const [selectedCharacter, setSelectedCharacter] = useState(CHARACTERS[0]);
+          const [selectedTopicId, setSelectedTopicId] = useState(null);
+          const [currentQuestion, setCurrentQuestion] = useState(null);
+          const [playerHp, setPlayerHp] = useState(100);
+          const [bossHp, setBossHp] = useState(100);
+          const [feedback, setFeedback] = useState(null); 
+          const [shake, setShake] = useState(false);
+          const [combo, setCombo] = useState(0);
+
+          const startLevel = (topicId) => {
+            setSelectedTopicId(topicId);
+            setPlayerHp(100);
+            setBossHp(100);
+            setCombo(0);
+            setFeedback(null);
+            setGameState('playing');
+            loadNewQuestion(topicId);
+          };
+
+          const loadNewQuestion = (topicId) => {
+            const questions = QUESTION_BANK[topicId];
+            const randomIndex = Math.floor(Math.random() * questions.length);
+            setCurrentQuestion(questions[randomIndex]);
+          };
+
+          const handleAnswer = (optionIndex) => {
+            if (feedback) return;
+
+            const isCorrect = optionIndex === currentQuestion.correct;
             
-            <div className="absolute bottom-4 opacity-0 group-hover:opacity-100 transition-opacity text-yellow-400 font-bold text-sm flex items-center gap-1">
-              選擇此角色 <ChevronRight size={16} />
-            </div>
-            <div className="h-6"></div> {/* Spacer for hover text */}
-          </button>
-        ))}
-      </div>
-      
-      <button 
-        onClick={() => setGameState('menu')}
-        className="mt-12 text-gray-400 hover:text-white underline"
-      >
-        返回主選單
-      </button>
-    </div>
-  );
+            if (isCorrect) {
+              const damage = 20 + (combo * 5); 
+              const newBossHp = Math.max(0, bossHp - damage);
+              setBossHp(newBossHp);
+              setCombo(combo + 1);
+              setFeedback({ type: 'correct', selected: optionIndex, msg: `正解！造成 ${damage} 點傷害！` });
 
-  const renderLevelSelect = () => (
-    <div className="min-h-screen bg-slate-900 text-white p-6 flex flex-col items-center animate-fade-in">
-      <div className="flex items-center gap-4 mb-8 mt-4">
-        <div className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-full border border-slate-700">
-           <span className="text-2xl">{selectedCharacter.avatar}</span>
-           <span className="font-bold text-sm text-gray-300">{selectedCharacter.name}</span>
-        </div>
-        <button onClick={() => setGameState('charSelect')} className="text-xs text-blue-400 hover:underline">更換角色</button>
-      </div>
+              if (newBossHp === 0) {
+                setTimeout(() => setGameState('won'), 1500);
+              }
+            } else {
+              const damage = 25;
+              const newPlayerHp = Math.max(0, playerHp - damage);
+              setPlayerHp(newPlayerHp);
+              setCombo(0);
+              setShake(true);
+              setFeedback({ type: 'wrong', selected: optionIndex, msg: `錯誤！${currentQuestion.explanation}` });
 
-      <h2 className="text-3xl font-bold mb-6">選擇你的戰場</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
-        {TOPICS.map((topic) => (
-          <button
-            key={topic.id}
-            onClick={() => startLevel(topic.id)}
-            className={`relative overflow-hidden rounded-2xl p-6 text-left transition-all hover:scale-105 hover:shadow-2xl bg-gradient-to-br ${topic.color} bg-opacity-10 border border-white/10`}
-          >
-            <div className="absolute top-0 right-0 p-4 opacity-20 text-6xl">
-              {topic.bossAvatar}
-            </div>
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-white/20 rounded-lg">
-                  {topic.icon}
-                </div>
-                <h3 className="text-2xl font-bold">{topic.name}</h3>
-              </div>
-              <p className="text-white/80 mb-4 text-sm min-h-[40px]">{topic.description}</p>
-              <div className="flex items-center gap-2 text-xs font-mono bg-black/20 w-fit px-2 py-1 rounded">
-                <Target className="w-3 h-3" />
-                BOSS: {topic.bossName}
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
-      <button 
-        onClick={() => setGameState('menu')}
-        className="mt-8 text-gray-400 hover:text-white underline"
-      >
-        返回主選單
-      </button>
-    </div>
-  );
+              if (newPlayerHp === 0) {
+                setTimeout(() => setGameState('lost'), 2000);
+              } else {
+                setTimeout(() => setShake(false), 500);
+              }
+            }
+          };
 
-  const renderGame = () => {
-    const topic = TOPICS.find(t => t.id === selectedTopicId);
-    if (!currentQuestion) return <div>Loading...</div>;
+          const handleNextQuestion = () => {
+            setFeedback(null);
+            loadNewQuestion(selectedTopicId);
+          };
 
-    return (
-      <div className={`min-h-screen bg-slate-900 text-white flex flex-col ${shake ? 'animate-shake' : ''}`}>
-        {/* 頂部狀態列 */}
-        <div className="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center sticky top-0 z-20 shadow-md">
-          <div className="flex items-center gap-2">
-            <button onClick={() => setGameState('levelSelect')} className="text-gray-400 hover:text-white">
-              &larr; 撤退
-            </button>
-            <span className="font-bold text-yellow-400 px-2 py-1 bg-yellow-400/10 rounded hidden md:inline">
-              {topic.name}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-             <span className="text-sm text-gray-400">連擊 Combo</span>
-             <span className={`text-2xl font-black font-mono ${combo > 1 ? 'text-orange-500 scale-110' : 'text-gray-500'} transition-all`}>
-               {combo > 0 ? `x${combo}` : '-'}
-             </span>
-          </div>
-        </div>
+          // --- 渲染畫面 ---
 
-        <div className="flex-1 max-w-3xl w-full mx-auto p-4 flex flex-col justify-between">
-          
-          {/* 戰場區域 */}
-          <div className="flex justify-between items-center py-4 md:py-8 px-2 md:px-4">
+          const renderIntro = () => {
+            const mathSymbols = ['∑', '∫', 'π', '√', '∞', 'sin', 'log', 'f(x)', 'dx', 'θ', 'λ', 'Δ'];
             
-            {/* 玩家狀態 */}
-            <div className="text-center relative group">
-              <div className={`w-16 h-16 md:w-20 md:h-20 ${selectedCharacter.color} rounded-full flex items-center justify-center text-3xl md:text-4xl shadow-[0_0_20px_rgba(0,0,0,0.5)] ${selectedCharacter.shadow} border-4 ${selectedCharacter.borderColor} mb-2 transition-transform`}>
-                {selectedCharacter.avatar}
-              </div>
-              <div className="w-20 md:w-24 h-4 bg-gray-700 rounded-full overflow-hidden border border-gray-600 relative">
-                <div 
-                  className="h-full bg-green-500 transition-all duration-500"
-                  style={{ width: `${playerHp}%` }}
-                ></div>
-              </div>
-              <p className="text-xs mt-1 font-mono text-gray-300">{selectedCharacter.name}</p>
-              
-              {/* 受傷特效 */}
-              {feedback?.type === 'wrong' && (
-                <div className="absolute -top-10 left-0 w-full text-red-500 font-bold animate-bounce text-xl">
-                  -25
+            // 隨機產生符號
+            const particles = Array.from({ length: 25 }).map((_, i) => ({
+              symbol: mathSymbols[Math.floor(Math.random() * mathSymbols.length)],
+              left: `${Math.random() * 100}%`,
+              delay: `${Math.random() * 5}s`,
+              duration: `${5 + Math.random() * 10}s`,
+              size: `${1 + Math.random() * 2}rem`,
+              opacity: 0.1 + Math.random() * 0.3
+            }));
+
+            return (
+              <div 
+                onClick={() => setGameState('menu')}
+                className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center overflow-hidden cursor-pointer"
+              >
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-black to-black"></div>
+                
+                {particles.map((p, i) => (
+                  <div
+                    key={i}
+                    className="absolute text-cyan-500 font-mono select-none animate-float-up"
+                    style={{
+                      left: p.left,
+                      bottom: '-10%',
+                      animationDelay: p.delay,
+                      animationDuration: p.duration,
+                      fontSize: p.size,
+                      opacity: p.opacity
+                    }}
+                  >
+                    {p.symbol}
+                  </div>
+                ))}
+
+                <div className="relative z-10 text-center px-4 animate-intro-sequence">
+                  <div className="mb-4 text-cyan-400 font-mono tracking-[0.5em] text-sm md:text-xl opacity-0 animate-fade-in-delayed-1">
+                    高一下學期
+                  </div>
+                  <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-orange-400 to-red-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)] mb-2 scale-50 opacity-0 animate-slam-in">
+                    高中數學
+                    <br className="md:hidden" />
+                    英雄傳
+                  </h1>
+                  <div className="text-xl md:text-3xl text-white/80 font-bold mb-12 tracking-widest opacity-0 animate-fade-in-delayed-2 flex items-center justify-center gap-3">
+                    <span className="w-8 h-[1px] bg-white/50"></span>
+                    四大試煉
+                    <span className="w-8 h-[1px] bg-white/50"></span>
+                  </div>
+                  <div className="opacity-0 animate-fade-in-delayed-3">
+                     <button className="group relative px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/30 rounded-full text-white transition-all hover:scale-105 backdrop-blur-sm flex items-center gap-3 mx-auto animate-pulse">
+                        <Icons.Play />
+                        <span className="tracking-widest font-bold">點擊螢幕開始</span>
+                     </button>
+                  </div>
                 </div>
-              )}
+              </div>
+            );
+          };
+
+          const renderMenu = () => (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 text-white p-4 animate-fade-in">
+              <div className="text-center mb-12">
+                <h1 className="text-5xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 drop-shadow-lg">
+                  高中數學英雄傳
+                </h1>
+                <p className="text-xl text-gray-300">高一下學期：四大試煉</p>
+              </div>
+              <button 
+                onClick={() => setGameState('charSelect')}
+                className="group relative px-8 py-4 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold text-xl rounded-full transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(234,179,8,0.5)] flex items-center gap-2"
+              >
+                <Icons.Sword />
+                開始冒險
+              </button>
+              <div className="mt-12 text-sm text-gray-500 text-center max-w-md">
+                <p>老師寄語：這不只是遊戲，是檢驗你數列、指數、向量與幾何能力的戰場！加油！</p>
+              </div>
             </div>
+          );
 
-            {/* VS */}
-            <div className="text-xl md:text-2xl font-black text-slate-700 italic">VS</div>
+          const renderCharSelect = () => (
+            <div className="min-h-screen bg-slate-900 text-white p-6 flex flex-col items-center justify-center animate-fade-in">
+              <h2 className="text-3xl font-bold mb-2 flex items-center gap-2">
+                <Icons.Users />
+                選擇你的英雄
+              </h2>
+              <p className="text-gray-400 mb-8">選擇一位代表你的勇者進入數學戰場</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-5xl">
+                {CHARACTERS.map((char) => (
+                  <button
+                    key={char.id}
+                    onClick={() => {
+                      setSelectedCharacter(char);
+                      setGameState('levelSelect');
+                    }}
+                    className="group relative bg-slate-800 rounded-2xl p-6 border-2 border-slate-700 hover:border-yellow-400 transition-all hover:-translate-y-2 hover:shadow-xl flex flex-col items-center text-center"
+                  >
+                    <div className={`w-24 h-24 rounded-full ${char.color} flex items-center justify-center text-6xl shadow-lg mb-4 ring-4 ring-opacity-30 ring-white group-hover:scale-110 transition-transform`}>
+                      {char.avatar}
+                    </div>
+                    <h3 className="text-xl font-bold mb-2 text-white group-hover:text-yellow-400">{char.name}</h3>
+                    <p className="text-sm text-gray-400">{char.desc}</p>
+                    <div className="absolute bottom-4 opacity-0 group-hover:opacity-100 transition-opacity text-yellow-400 font-bold text-sm flex items-center gap-1">
+                      選擇此角色 <Icons.ChevronRight />
+                    </div>
+                    <div className="h-6"></div>
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => setGameState('menu')} className="mt-12 text-gray-400 hover:text-white underline">返回主選單</button>
+            </div>
+          );
 
-            {/* Boss 狀態 */}
-            <div className="text-center relative">
-              <div className="w-20 h-20 md:w-24 md:h-24 bg-red-900/50 rounded-xl flex items-center justify-center text-5xl md:text-6xl shadow-[0_0_20px_rgba(220,38,38,0.3)] border-2 border-red-500/50 mb-2 animate-pulse-slow">
-                {topic.bossAvatar}
-              </div>
-              <div className="w-24 md:w-28 h-4 bg-gray-700 rounded-full overflow-hidden border border-gray-600">
-                <div 
-                  className="h-full bg-red-500 transition-all duration-500"
-                  style={{ width: `${bossHp}%` }}
-                ></div>
-              </div>
-              <p className="text-xs mt-1 font-mono text-gray-300">{topic.bossName}</p>
-              {feedback?.type === 'correct' && (
-                <div className="absolute -top-10 left-0 w-full text-yellow-400 font-bold animate-bounce text-xl">
-                  HIT!
+          const renderLevelSelect = () => (
+            <div className="min-h-screen bg-slate-900 text-white p-6 flex flex-col items-center animate-fade-in">
+              <div className="flex items-center gap-4 mb-8 mt-4">
+                <div className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-full border border-slate-700">
+                   <span className="text-2xl">{selectedCharacter.avatar}</span>
+                   <span className="font-bold text-sm text-gray-300">{selectedCharacter.name}</span>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* 題目與回饋區域 */}
-          <div className="flex-1 flex flex-col justify-end">
-            
-            <div className="bg-slate-800 rounded-2xl p-4 md:p-6 shadow-xl mb-4 border border-slate-700">
-              <h3 className="text-lg md:text-xl font-medium leading-relaxed mb-6 text-cyan-100 min-h-[3rem]">
-                <span className="bg-cyan-900/50 text-cyan-300 text-xs px-2 py-1 rounded mr-2 align-middle">
-                  問題
-                </span>
-                {currentQuestion.q}
-              </h3>
-
-              <div className="grid grid-cols-1 gap-3">
-                {currentQuestion.options.map((opt, idx) => {
-                  let btnClass = "bg-slate-700 hover:bg-slate-600 active:scale-98 hover:shadow-lg";
-                  
-                  if (feedback) {
-                    if (idx === currentQuestion.correct) {
-                      btnClass = "bg-green-600 text-white ring-2 ring-green-400 opacity-100";
-                    } else if (idx === feedback.selected) {
-                      btnClass = "bg-red-600 text-white opacity-50";
-                    } else {
-                      btnClass = "bg-slate-700 text-gray-500 opacity-30 cursor-not-allowed";
-                    }
-                  }
-
+                <button onClick={() => setGameState('charSelect')} className="text-xs text-blue-400 hover:underline">更換角色</button>
+              </div>
+              <h2 className="text-3xl font-bold mb-6">選擇你的戰場</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
+                {TOPICS.map((topic) => {
+                  const TopicIcon = topic.icon;
                   return (
                     <button
-                      key={idx}
-                      onClick={() => handleAnswer(idx)}
-                      disabled={!!feedback}
-                      className={`
-                        p-4 text-left rounded-xl transition-all font-medium flex items-center gap-3
-                        ${btnClass}
-                      `}
+                      key={topic.id}
+                      onClick={() => startLevel(topic.id)}
+                      className={`relative overflow-hidden rounded-2xl p-6 text-left transition-all hover:scale-105 hover:shadow-2xl bg-gradient-to-br ${topic.color} bg-opacity-10 border border-white/10`}
                     >
-                      <span className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs shrink-0">
-                        {String.fromCharCode(65 + idx)}
-                      </span>
-                      {opt}
+                      <div className="absolute top-0 right-0 p-4 opacity-20 text-6xl">
+                        {topic.bossAvatar}
+                      </div>
+                      <div className="relative z-10">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="p-2 bg-white/20 rounded-lg">
+                            <TopicIcon />
+                          </div>
+                          <h3 className="text-2xl font-bold">{topic.name}</h3>
+                        </div>
+                        <p className="text-white/80 mb-4 text-sm min-h-[40px]">{topic.description}</p>
+                        <div className="flex items-center gap-2 text-xs font-mono bg-black/20 w-fit px-2 py-1 rounded">
+                          <Icons.Target />
+                          BOSS: {topic.bossName}
+                        </div>
+                      </div>
                     </button>
                   );
                 })}
               </div>
+              <button onClick={() => setGameState('menu')} className="mt-8 text-gray-400 hover:text-white underline">返回主選單</button>
             </div>
+          );
 
-            {feedback && (
-              <div className="animate-fade-in-up">
-                <div className={`
-                  p-4 rounded-xl mb-3 flex flex-col gap-2
-                  ${feedback.type === 'correct' ? 'bg-green-900/40 border border-green-500/30' : 'bg-red-900/40 border border-red-500/30'}
-                `}>
-                  <div className={`font-bold text-lg flex items-center gap-2 ${feedback.type === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
-                    {feedback.type === 'correct' ? <Zap size={20} /> : <Shield size={20} />}
-                    {feedback.type === 'correct' ? '回答正確！' : '回答錯誤！'}
+          const renderGame = () => {
+            const topic = TOPICS.find(t => t.id === selectedTopicId);
+            if (!currentQuestion) return <div>Loading...</div>;
+
+            return (
+              <div className={`min-h-screen bg-slate-900 text-white flex flex-col ${shake ? 'animate-shake' : ''}`}>
+                <div className="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center sticky top-0 z-20 shadow-md">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setGameState('levelSelect')} className="text-gray-400 hover:text-white">&larr; 撤退</button>
+                    <span className="font-bold text-yellow-400 px-2 py-1 bg-yellow-400/10 rounded hidden md:inline">{topic.name}</span>
                   </div>
-                  <div className="text-gray-200 pl-7">
-                    {feedback.type === 'wrong' ? feedback.msg.replace('錯誤！', '') : '乘勝追擊，繼續進攻！'}
+                  <div className="flex items-center gap-2">
+                     <span className="text-sm text-gray-400">連擊 Combo</span>
+                     <span className={`text-2xl font-black font-mono ${combo > 1 ? 'text-orange-500 scale-110' : 'text-gray-500'} transition-all`}>
+                       {combo > 0 ? `x${combo}` : '-'}
+                     </span>
                   </div>
                 </div>
 
-                {gameState === 'playing' && (
-                  <button 
-                    onClick={handleNextQuestion}
-                    className="w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold text-xl rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2"
-                  >
-                    繼續戰鬥 (下一題) <ChevronRight />
-                  </button>
-                )}
+                <div className="flex-1 max-w-3xl w-full mx-auto p-4 flex flex-col justify-between">
+                  <div className="flex justify-between items-center py-4 md:py-8 px-2 md:px-4">
+                    <div className="text-center relative group">
+                      <div className={`w-16 h-16 md:w-20 md:h-20 ${selectedCharacter.color} rounded-full flex items-center justify-center text-3xl md:text-4xl shadow-[0_0_20px_rgba(0,0,0,0.5)] ${selectedCharacter.shadow} border-4 ${selectedCharacter.borderColor} mb-2 transition-transform`}>
+                        {selectedCharacter.avatar}
+                      </div>
+                      <div className="w-20 md:w-24 h-4 bg-gray-700 rounded-full overflow-hidden border border-gray-600 relative">
+                        <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${playerHp}%` }}></div>
+                      </div>
+                      <p className="text-xs mt-1 font-mono text-gray-300">{selectedCharacter.name}</p>
+                      {feedback?.type === 'wrong' && <div className="absolute -top-10 left-0 w-full text-red-500 font-bold animate-bounce text-xl">-25</div>}
+                    </div>
+
+                    <div className="text-xl md:text-2xl font-black text-slate-700 italic">VS</div>
+
+                    <div className="text-center relative">
+                      <div className="w-20 h-20 md:w-24 md:h-24 bg-red-900/50 rounded-xl flex items-center justify-center text-5xl md:text-6xl shadow-[0_0_20px_rgba(220,38,38,0.3)] border-2 border-red-500/50 mb-2 animate-pulse-slow">
+                        {topic.bossAvatar}
+                      </div>
+                      <div className="w-24 md:w-28 h-4 bg-gray-700 rounded-full overflow-hidden border border-gray-600">
+                        <div className="h-full bg-red-500 transition-all duration-500" style={{ width: `${bossHp}%` }}></div>
+                      </div>
+                      <p className="text-xs mt-1 font-mono text-gray-300">{topic.bossName}</p>
+                      {feedback?.type === 'correct' && <div className="absolute -top-10 left-0 w-full text-yellow-400 font-bold animate-bounce text-xl">HIT!</div>}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 flex flex-col justify-end">
+                    <div className="bg-slate-800 rounded-2xl p-4 md:p-6 shadow-xl mb-4 border border-slate-700">
+                      <h3 className="text-lg md:text-xl font-medium leading-relaxed mb-6 text-cyan-100 min-h-[3rem]">
+                        <span className="bg-cyan-900/50 text-cyan-300 text-xs px-2 py-1 rounded mr-2 align-middle">問題</span>
+                        {currentQuestion.q}
+                      </h3>
+                      <div className="grid grid-cols-1 gap-3">
+                        {currentQuestion.options.map((opt, idx) => {
+                          let btnClass = "bg-slate-700 hover:bg-slate-600 active:scale-98 hover:shadow-lg";
+                          if (feedback) {
+                            if (idx === currentQuestion.correct) {
+                              btnClass = "bg-green-600 text-white ring-2 ring-green-400 opacity-100";
+                            } else if (idx === feedback.selected) {
+                              btnClass = "bg-red-600 text-white opacity-50";
+                            } else {
+                              btnClass = "bg-slate-700 text-gray-500 opacity-30 cursor-not-allowed";
+                            }
+                          }
+                          return (
+                            <button key={idx} onClick={() => handleAnswer(idx)} disabled={!!feedback} className={`p-4 text-left rounded-xl transition-all font-medium flex items-center gap-3 ${btnClass}`}>
+                              <span className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs shrink-0">{String.fromCharCode(65 + idx)}</span>
+                              {opt}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {feedback && (
+                      <div className="animate-fade-in-up">
+                        <div className={`p-4 rounded-xl mb-3 flex flex-col gap-2 ${feedback.type === 'correct' ? 'bg-green-900/40 border border-green-500/30' : 'bg-red-900/40 border border-red-500/30'}`}>
+                          <div className={`font-bold text-lg flex items-center gap-2 ${feedback.type === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
+                            {feedback.type === 'correct' ? <Icons.Zap /> : <Icons.Shield />}
+                            {feedback.type === 'correct' ? '回答正確！' : '回答錯誤！'}
+                          </div>
+                          <div className="text-gray-200 pl-7">
+                            {feedback.type === 'wrong' ? feedback.msg.replace('錯誤！', '') : '乘勝追擊，繼續進攻！'}
+                          </div>
+                        </div>
+                        {gameState === 'playing' && (
+                          <button onClick={handleNextQuestion} className="w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold text-xl rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2">
+                            繼續戰鬥 (下一題) <Icons.ChevronRight />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            )}
-            
-          </div>
+            );
+          };
 
-        </div>
-      </div>
-    );
-  };
+          const renderWon = () => (
+            <div className="min-h-screen bg-green-900 flex flex-col items-center justify-center text-white p-6 text-center animate-fade-in">
+              <div className="w-24 h-24 text-yellow-400 mb-6 animate-bounce mx-auto"><Icons.Trophy /></div>
+              <h2 className="text-4xl font-bold mb-2">挑戰成功！</h2>
+              <p className="text-xl text-green-200 mb-8">{selectedCharacter.name} 擊敗了 {TOPICS.find(t => t.id === selectedTopicId)?.bossName}</p>
+              <button onClick={() => setGameState('levelSelect')} className="px-6 py-3 bg-white text-green-900 rounded-full font-bold hover:bg-gray-100 transition-colors">挑戰下一關</button>
+            </div>
+          );
 
-  const renderWon = () => (
-    <div className="min-h-screen bg-green-900 flex flex-col items-center justify-center text-white p-6 text-center animate-fade-in">
-      <Trophy className="w-24 h-24 text-yellow-400 mb-6 animate-bounce" />
-      <h2 className="text-4xl font-bold mb-2">挑戰成功！</h2>
-      <p className="text-xl text-green-200 mb-8">
-        {selectedCharacter.name} 擊敗了 {TOPICS.find(t => t.id === selectedTopicId)?.bossName}
-      </p>
-      
-      <div className="flex gap-4">
-        <button 
-          onClick={() => setGameState('levelSelect')}
-          className="px-6 py-3 bg-white text-green-900 rounded-full font-bold hover:bg-gray-100 transition-colors"
-        >
-          挑戰下一關
-        </button>
-      </div>
-    </div>
-  );
+          const renderLost = () => (
+            <div className="min-h-screen bg-red-950 flex flex-col items-center justify-center text-white p-6 text-center animate-fade-in">
+              <div className="w-24 h-24 text-red-500 mb-6 animate-pulse mx-auto"><Icons.Heart /></div>
+              <h2 className="text-4xl font-bold mb-2">挑戰失敗...</h2>
+              <p className="text-xl text-red-200 mb-8">{selectedCharacter.name} 需要重新修煉再來挑戰！</p>
+              <div className="flex gap-4 justify-center">
+                <button onClick={() => startLevel(selectedTopicId)} className="px-6 py-3 bg-red-600 text-white rounded-full font-bold hover:bg-red-500 transition-colors flex items-center gap-2"><Icons.RefreshCw /> 再試一次</button>
+                <button onClick={() => setGameState('levelSelect')} className="px-6 py-3 border border-red-400 text-red-100 rounded-full font-bold hover:bg-red-900 transition-colors">撤退</button>
+              </div>
+            </div>
+          );
 
-  const renderLost = () => (
-    <div className="min-h-screen bg-red-950 flex flex-col items-center justify-center text-white p-6 text-center animate-fade-in">
-      <Heart className="w-24 h-24 text-red-500 mb-6 animate-pulse" />
-      <h2 className="text-4xl font-bold mb-2">挑戰失敗...</h2>
-      <p className="text-xl text-red-200 mb-8">{selectedCharacter.name} 需要重新修煉再來挑戰！</p>
-      
-      <div className="flex gap-4">
-        <button 
-          onClick={() => startLevel(selectedTopicId)}
-          className="px-6 py-3 bg-red-600 text-white rounded-full font-bold hover:bg-red-500 transition-colors flex items-center gap-2"
-        >
-          <RefreshCw size={20} />
-          再試一次
-        </button>
-        <button 
-          onClick={() => setGameState('levelSelect')}
-          className="px-6 py-3 border border-red-400 text-red-100 rounded-full font-bold hover:bg-red-900 transition-colors"
-        >
-          撤退
-        </button>
-      </div>
-    </div>
-  );
+          return (
+            <div>
+              {gameState === 'intro' && renderIntro()}
+              {gameState === 'menu' && renderMenu()}
+              {gameState === 'charSelect' && renderCharSelect()}
+              {gameState === 'levelSelect' && renderLevelSelect()}
+              {gameState === 'playing' && renderGame()}
+              {gameState === 'won' && renderWon()}
+              {gameState === 'lost' && renderLost()}
+            </div>
+          );
+        }
 
-  return (
-    <div className="font-sans">
-      <style>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          75% { transform: translateX(5px); }
-        }
-        .animate-shake {
-          animation: shake 0.4s ease-in-out;
-        }
-        .animate-pulse-slow {
-          animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in-up {
-          animation: fadeInUp 0.3s ease-out forwards;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .animate-fade-in {
-          animation: fadeIn 0.5s ease-out forwards;
-        }
-        
-        /* Intro Animations */
-        @keyframes float-up {
-          0% { transform: translateY(110vh) rotate(0deg); opacity: 0; }
-          20% { opacity: 0.8; }
-          80% { opacity: 0.8; }
-          100% { transform: translateY(-20vh) rotate(360deg); opacity: 0; }
-        }
-        .animate-float-up {
-          animation-name: float-up;
-          animation-timing-function: linear;
-          animation-iteration-count: infinite;
-        }
-        
-        @keyframes slam-in {
-          0% { transform: scale(10); opacity: 0; }
-          50% { opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        .animate-slam-in {
-          animation: slam-in 0.8s cubic-bezier(0.17, 0.89, 0.32, 1.25) forwards;
-          animation-delay: 1s;
-        }
-        
-        .animate-fade-in-delayed-1 { animation: fadeIn 1s ease-out forwards 0.5s; }
-        .animate-fade-in-delayed-2 { animation: fadeIn 1s ease-out forwards 1.8s; }
-        .animate-fade-in-delayed-3 { animation: fadeIn 1s ease-out forwards 2.5s; }
-      `}</style>
-      
-      {gameState === 'intro' && renderIntro()}
-      {gameState === 'menu' && renderMenu()}
-      {gameState === 'charSelect' && renderCharSelect()}
-      {gameState === 'levelSelect' && renderLevelSelect()}
-      {gameState === 'playing' && renderGame()}
-      {gameState === 'won' && renderWon()}
-      {gameState === 'lost' && renderLost()}
-    </div>
-  );
-}
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<MathHeroApp />);
+    </script>
+</body>
+</html>
